@@ -1,6 +1,20 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Choose where to deploy'
+        )
+    }
+
+    environment {
+        TOMCAT_URL = 'http://host.minikube.internal:8082'
+        TOMCAT_USER = 'admin'
+        TOMCAT_PASS = 'admin123'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -18,9 +32,13 @@ pipeline {
         stage('Deploy to Tomcat') {
             steps {
                 sh '''
-                curl -u admin:admin123 \
+                APP_CONTEXT="lovestory-${DEPLOY_ENV}"
+
+                echo "Deploying to context: ${APP_CONTEXT}"
+
+                curl -u $TOMCAT_USER:$TOMCAT_PASS \
                   -T target/lovestory.war \
-                  "http://host.minikube.internal:8082/manager/text/deploy?path=/lovestory&update=true"
+                  "$TOMCAT_URL/manager/text/deploy?path=/${APP_CONTEXT}&update=true"
                 '''
             }
         }
