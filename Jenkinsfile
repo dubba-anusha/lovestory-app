@@ -52,6 +52,7 @@ kind: Job
 metadata:
   name: kaniko-lovestory-build-${BUILD_NUMBER}
 spec:
+  backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
@@ -61,8 +62,8 @@ spec:
           args:
             - "--context=git://github.com/dubba-anusha/lovestory-app.git"
             - "--dockerfile=Dockerfile"
-            - "--destination=docker.io/${anushadubba}/lovestory-app:${IMAGE_TAG}"
-          volumeMounts:
+            - "--destination=docker.io/anushadubba/lovestory-app:${BUILD_NUMBER}"
+          volumemounts:
             - name: docker-config
               mountPath: /kaniko/.docker
       volumes:
