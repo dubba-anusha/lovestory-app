@@ -13,7 +13,7 @@ pipeline {
         TOMCAT_URL = 'http://host.minikube.internal:8082'
         TOMCAT_USER = 'admin'
         TOMCAT_PASS = 'admin123'
-        DOCKERHUB_USERNAME = 'anushadubbaE'
+        DOCKERHUB_USERNAME = 'anushadubba'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
