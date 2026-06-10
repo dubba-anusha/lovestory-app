@@ -63,7 +63,7 @@ spec:
             - "--context=git://github.com/dubba-anusha/lovestory-app.git"
             - "--dockerfile=Dockerfile"
             - "--destination=docker.io/anushadubba/lovestory-app:${BUILD_NUMBER}"
-          volumemounts:
+          volumeMounts:
             - name: docker-config
               mountPath: /kaniko/.docker
       volumes:
