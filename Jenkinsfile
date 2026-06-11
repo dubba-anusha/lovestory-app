@@ -7,7 +7,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = "anushadubba/lovestory"
-        PATH+KUBECTL = "/var/jenkins_home/bin"
     }
 
     stages {
@@ -59,8 +58,8 @@ spec:
           claimName: jenkins-pvc
 YAML
 
-                kubectl delete job kaniko-lovestory-${ENVIRONMENT} --ignore-not-found=true
-                kubectl apply -f kaniko-job.yaml
+                /var/jenkins_home/bin/kubectl delete job kaniko-lovestory-${ENVIRONMENT} --ignore-not-found=true
+                /var/jenkins_home/bin/kubectl apply -f kaniko-job.yaml
                 '''
             }
         }
