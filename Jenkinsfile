@@ -2,19 +2,11 @@ pipeline {
     agent any
 
     parameters {
-        choice(
-            name: 'DEPLOY_ENV',
-            choices: ['dev', 'qa', 'prod'],
-            description: 'Choose where to deploy'
-        )
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'qa', 'prod'], description: 'Select environment')
     }
 
     environment {
-        TOMCAT_URL = 'http://host.minikube.internal:8082'
-        TOMCAT_USER = 'admin'
-        TOMCAT_PASS = 'admin123'
-        DOCKERHUB_USERNAME = 'anushadubba'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_NAME = "anushadubba/lovestory"
     }
 
     stages {
@@ -24,67 +16,51 @@ pipeline {
             }
         }
 
-        stage('Build with Maven') {
+        stage('Build WAR') {
             steps {
-                sh 'chmod +x mvnw'
-                sh './mvnw clean package'
+                sh 'mvn clean package'
             }
         }
 
-        stage('Deploy WAR to Tomcat') {
+        stage('Build and Push Image using Kaniko') {
             steps {
                 sh '''
-                APP_CONTEXT="lovestory-${DEPLOY_ENV}"
-
-                curl -u $TOMCAT_USER:$TOMCAT_PASS \
-                  -T target/lovestory.war \
-                  "$TOMCAT_URL/manager/text/deploy?path=/${APP_CONTEXT}&update=true"
-                '''
-            }
-        }
-
-        stage('Build Docker Image with Kaniko') {
-            steps {
-                sh '''
-                cat > /tmp/kaniko-job.yaml <<EOF
+                cat > kaniko-job.yaml <<YAML
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kaniko-lovestory-build-${BUILD_NUMBER}
+  name: kaniko-lovestory-${ENVIRONMENT}
 spec:
-  backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
       containers:
-        - name: kaniko
-          image: gcr.io/kaniko-project/executor:latest
-          args:
-            - "--context=git://github.com/dubba-anusha/lovestory-app.git"
-            - "--dockerfile=Dockerfile"
-            - "--destination=docker.io/anushadubba/lovestory-app:${BUILD_NUMBER}"
-          volumeMounts:
-            - name: docker-config
-              mountPath: /kaniko/.docker
-      volumes:
+      - name: kaniko
+        image: gcr.io/kaniko-project/executor:latest
+        args:
+        - "--dockerfile=/workspace/Dockerfile"
+        - "--context=dir:///workspace"
+        - "--destination=docker.io/${IMAGE_NAME}:${ENVIRONMENT}"
+        volumeMounts:
         - name: docker-config
-          secret:
-            secretName: dockerhub-secret
-            items:
-              - key: .dockerconfigjson
-                path: config.json
-EOF
+          mountPath: /kaniko/.docker
+        - name: workspace
+          mountPath: /workspace
+      volumes:
+      - name: docker-config
+        secret:
+          secretName: dockerhub-secret
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: jenkins-pvc
+YAML
 
-                /tmp/kubectl apply -f /tmp/kaniko-job.yaml
-                /tmp/kubectl wait --for=condition=complete job/kaniko-lovestory-build-${BUILD_NUMBER} --timeout=300s
-                /tmp/kubectl logs job/kaniko-lovestory-build-${BUILD_NUMBER}
+                kubectl delete job kaniko-lovestory-${ENVIRONMENT} --ignore-not-found=true
+                kubectl apply -f kaniko-job.yaml
                 '''
-            }
-        }
-
-        stage('Archive WAR') {
-            steps {
-                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
             }
         }
     }
