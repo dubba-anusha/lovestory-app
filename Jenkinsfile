@@ -23,5 +23,11 @@ pipeline {
                 buildWar()
             }
         }
+
+        stage('Build and Push Image') {
+            steps {
+                kanikoBuildPush(env.IMAGE_NAME, params.ENVIRONMENT)
+            }
+        }
     }
 }
