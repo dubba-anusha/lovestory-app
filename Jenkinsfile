@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "anushadubba/lovestory"
+        PATH+KUBECTL = "/var/jenkins_home/bin"
     }
 
     stages {
